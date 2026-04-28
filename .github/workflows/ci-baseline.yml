@@ -1,0 +1,109 @@
+name: Baseline CI
+
+on:
+  push:
+    branches: [main, baseline-ci]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+
+      - name: Start backend install timer
+        id: backend_install_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Stop backend install timer
+        id: backend_install_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.backend_install_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+      - name: Start frontend install timer
+        id: frontend_install_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Stop frontend install timer
+        id: frontend_install_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.frontend_install_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+      - name: Start backend test timer
+        id: backend_test_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+      - name: Stop backend test timer
+        id: backend_test_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.backend_test_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+      - name: Start frontend build timer
+        id: frontend_build_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Stop frontend build timer
+        id: frontend_build_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.frontend_build_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+      - name: Create metrics file
+        run: |
+          mkdir -p metrics
+          cat <<EOF > metrics/baseline-metrics.json
+          {
+            "variant": "baseline",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "ref": "${{ github.ref_name }}",
+            "sha": "${{ github.sha }}",
+            "backend_install_duration_sec": "${{ steps.backend_install_end.outputs.duration }}",
+            "frontend_install_duration_sec": "${{ steps.frontend_install_end.outputs.duration }}",
+            "backend_test_duration_sec": "${{ steps.backend_test_end.outputs.duration }}",
+            "frontend_build_duration_sec": "${{ steps.frontend_build_end.outputs.duration }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-metrics-${{ github.run_id }}
+          path: metrics/baseline-metrics.json
