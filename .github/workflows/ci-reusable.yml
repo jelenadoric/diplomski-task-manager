@@ -1,0 +1,12 @@
+name: Reusable CI
+
+on:
+  push:
+    branches: [reusable-ci]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  call-reusable-pipeline:
+    uses: ./.github/workflows/reusable-pipeline.yml
