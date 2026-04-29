@@ -2,7 +2,7 @@ name: Baseline CI
 
 on:
   push:
-    branches: [main, baseline-ci]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
