@@ -1,0 +1,54 @@
+name: Backend CI Composite Action
+description: Install backend dependencies and run backend tests
+
+outputs:
+  backend_install_duration_sec:
+    description: Backend install duration in seconds
+    value: ${{ steps.backend_install_end.outputs.duration }}
+  backend_test_duration_sec:
+    description: Backend test duration in seconds
+    value: ${{ steps.backend_test_end.outputs.duration }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: npm
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Start backend install timer
+      id: backend_install_start
+      shell: bash
+      run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+    - name: Install backend dependencies
+      shell: bash
+      run: cd backend && npm ci
+
+    - name: Stop backend install timer
+      id: backend_install_end
+      shell: bash
+      run: |
+        end=$(date +%s)
+        start=${{ steps.backend_install_start.outputs.ts }}
+        echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+    - name: Start backend test timer
+      id: backend_test_start
+      shell: bash
+      run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+    - name: Run backend tests
+      shell: bash
+      run: cd backend && npm test
+
+    - name: Stop backend test timer
+      id: backend_test_end
+      shell: bash
+      run: |
+        end=$(date +%s)
+        start=${{ steps.backend_test_start.outputs.ts }}
+        echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
