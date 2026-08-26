@@ -1,10 +1,6 @@
 name: Reusable CI
 
 on:
-  push:
-    branches: [reusable-ci]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:

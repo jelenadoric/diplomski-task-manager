@@ -2,23 +2,40 @@ name: Reusable Pipeline
 
 on:
   workflow_call:
-    
+
 jobs:
-  test-and-build:
+  backend-ci:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: diplomski_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d diplomski_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+
+    outputs:
+      backend_install_duration_sec: ${{ steps.backend_install_end.outputs.duration }}
+      backend_test_duration_sec: ${{ steps.backend_test_end.outputs.duration }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          cache-dependency-path: backend/package-lock.json
 
       - name: Start backend install timer
         id: backend_install_start
@@ -35,6 +52,45 @@ jobs:
           start=${{ steps.backend_install_start.outputs.ts }}
           echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
+      - name: Initialize test database
+        working-directory: backend
+        run: npm run test:init-db
+
+      - name: Start backend test timer
+        id: backend_test_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test
+
+      - name: Stop backend test timer
+        id: backend_test_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.backend_test_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+
+    outputs:
+      frontend_install_duration_sec: ${{ steps.frontend_install_end.outputs.duration }}
+      frontend_lint_duration_sec: ${{ steps.frontend_lint_end.outputs.duration }}
+      frontend_test_duration_sec: ${{ steps.frontend_test_end.outputs.duration }}
+      frontend_build_duration_sec: ${{ steps.frontend_build_end.outputs.duration }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Start frontend install timer
         id: frontend_install_start
         run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -50,19 +106,34 @@ jobs:
           start=${{ steps.frontend_install_start.outputs.ts }}
           echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
-      - name: Start backend test timer
-        id: backend_test_start
+      - name: Start frontend lint timer
+        id: frontend_lint_start
         run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
 
-      - name: Run backend tests
-        working-directory: backend
-        run: npm test
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
 
-      - name: Stop backend test timer
-        id: backend_test_end
+      - name: Stop frontend lint timer
+        id: frontend_lint_end
         run: |
           end=$(date +%s)
-          start=${{ steps.backend_test_start.outputs.ts }}
+          start=${{ steps.frontend_lint_start.outputs.ts }}
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+      - name: Start frontend test timer
+        id: frontend_test_start
+        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Stop frontend test timer
+        id: frontend_test_end
+        run: |
+          end=$(date +%s)
+          start=${{ steps.frontend_test_start.outputs.ts }}
           echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
       - name: Start frontend build timer
@@ -80,9 +151,24 @@ jobs:
           start=${{ steps.frontend_build_start.outputs.ts }}
           echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: reusable-frontend-build-${{ github.run_id }}
+          path: frontend/dist
+          retention-days: 1
+
+  collect-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - backend-ci
+      - frontend-ci
+
+    steps:
       - name: Create metrics file
         run: |
           mkdir -p metrics
+
           cat <<EOF > metrics/reusable-metrics.json
           {
             "variant": "reusable",
@@ -90,10 +176,12 @@ jobs:
             "run_attempt": "${{ github.run_attempt }}",
             "ref": "${{ github.ref_name }}",
             "sha": "${{ github.sha }}",
-            "backend_install_duration_sec": "${{ steps.backend_install_end.outputs.duration }}",
-            "frontend_install_duration_sec": "${{ steps.frontend_install_end.outputs.duration }}",
-            "backend_test_duration_sec": "${{ steps.backend_test_end.outputs.duration }}",
-            "frontend_build_duration_sec": "${{ steps.frontend_build_end.outputs.duration }}",
+            "backend_install_duration_sec": "${{ needs.backend-ci.outputs.backend_install_duration_sec }}",
+            "backend_test_duration_sec": "${{ needs.backend-ci.outputs.backend_test_duration_sec }}",
+            "frontend_install_duration_sec": "${{ needs.frontend-ci.outputs.frontend_install_duration_sec }}",
+            "frontend_lint_duration_sec": "${{ needs.frontend-ci.outputs.frontend_lint_duration_sec }}",
+            "frontend_test_duration_sec": "${{ needs.frontend-ci.outputs.frontend_test_duration_sec }}",
+            "frontend_build_duration_sec": "${{ needs.frontend-ci.outputs.frontend_build_duration_sec }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
@@ -103,3 +191,4 @@ jobs:
         with:
           name: reusable-metrics-${{ github.run_id }}
           path: metrics/reusable-metrics.json
+          retention-days: 30
