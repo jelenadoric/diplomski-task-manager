@@ -8,6 +8,7 @@ import {
 import {
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -136,17 +137,21 @@ describe("AuthProvider", () => {
 
     renderAuthProvider();
 
-    expect(
-      await screen.findByTestId("user")
-    ).toHaveTextContent("jelena");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("jelena");
+    });
 
     expect(
       screen.getByTestId("token")
     ).toHaveTextContent("stored-token");
 
-    expect(
-      screen.getByTestId("loading")
-    ).toHaveTextContent("false");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("loading")
+        ).toHaveTextContent("false");
+    });
 
     expect(
       getCurrentUser
@@ -167,17 +172,19 @@ describe("AuthProvider", () => {
 
     renderAuthProvider();
 
-    expect(
-      await screen.findByTestId("loading")
-    ).toHaveTextContent("false");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("loading")
+        ).toHaveTextContent("false");
 
-    expect(
-      screen.getByTestId("token")
-    ).toHaveTextContent("none");
+        expect(
+            screen.getByTestId("token")
+        ).toHaveTextContent("none");
 
-    expect(
-      screen.getByTestId("user")
-    ).toHaveTextContent("none");
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("none");
+    });
 
     expect(
       localStorage.getItem(
@@ -208,13 +215,15 @@ describe("AuthProvider", () => {
       })
     );
 
-    expect(
-      await screen.findByTestId("user")
-    ).toHaveTextContent("jelena");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("jelena");
 
-    expect(
-      screen.getByTestId("token")
-    ).toHaveTextContent("login-token");
+        expect(
+            screen.getByTestId("token")
+        ).toHaveTextContent("login-token");
+    });
 
     expect(
       localStorage.getItem(
@@ -250,15 +259,15 @@ describe("AuthProvider", () => {
       })
     );
 
-    expect(
-      await screen.findByTestId("user")
-    ).toHaveTextContent("jelena");
+   await waitFor(() => {
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("jelena");
 
-    expect(
-      screen.getByTestId("token")
-    ).toHaveTextContent(
-      "register-token"
-    );
+        expect(
+            screen.getByTestId("token")
+        ).toHaveTextContent("register-token");
+    });
 
     expect(
       localStorage.getItem(
@@ -289,9 +298,11 @@ describe("AuthProvider", () => {
 
     renderAuthProvider();
 
-    expect(
-      await screen.findByTestId("user")
-    ).toHaveTextContent("jelena");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("jelena");
+    });
 
     await user.click(
       screen.getByRole("button", {
@@ -299,13 +310,15 @@ describe("AuthProvider", () => {
       })
     );
 
-    expect(
-      await screen.findByTestId("user")
-    ).toHaveTextContent("none");
+    await waitFor(() => {
+        expect(
+            screen.getByTestId("user")
+        ).toHaveTextContent("none");
 
-    expect(
-      screen.getByTestId("token")
-    ).toHaveTextContent("none");
+        expect(
+            screen.getByTestId("token")
+        ).toHaveTextContent("none");
+    });
 
     expect(
       localStorage.getItem(
