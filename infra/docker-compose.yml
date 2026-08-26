@@ -4,9 +4,9 @@ services:
     container_name: diplomski-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: appuser
-      POSTGRES_PASSWORD: apppass
-      POSTGRES_DB: taskdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: diplomski
     ports:
       - "5432:5432"
     volumes:
