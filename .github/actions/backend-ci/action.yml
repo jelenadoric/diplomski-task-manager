@@ -1,21 +1,23 @@
 name: Backend CI Composite Action
-description: Install backend dependencies and run backend tests
+description: Install backend dependencies, initialize the test database and run backend tests
 
 outputs:
   backend_install_duration_sec:
     description: Backend install duration in seconds
     value: ${{ steps.backend_install_end.outputs.duration }}
+
   backend_test_duration_sec:
     description: Backend test duration in seconds
     value: ${{ steps.backend_test_end.outputs.duration }}
 
 runs:
   using: composite
+
   steps:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: "20"
+        node-version: "22"
         cache: npm
         cache-dependency-path: backend/package-lock.json
 
@@ -26,7 +28,8 @@ runs:
 
     - name: Install backend dependencies
       shell: bash
-      run: cd backend && npm ci
+      working-directory: backend
+      run: npm ci
 
     - name: Stop backend install timer
       id: backend_install_end
@@ -36,6 +39,11 @@ runs:
         start=${{ steps.backend_install_start.outputs.ts }}
         echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
+    - name: Initialize test database
+      shell: bash
+      working-directory: backend
+      run: npm run test:init-db
+
     - name: Start backend test timer
       id: backend_test_start
       shell: bash
@@ -43,7 +51,8 @@ runs:
 
     - name: Run backend tests
       shell: bash
-      run: cd backend && npm test
+      working-directory: backend
+      run: npm test
 
     - name: Stop backend test timer
       id: backend_test_end

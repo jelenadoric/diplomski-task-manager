@@ -1,21 +1,31 @@
 name: Frontend CI Composite Action
-description: Install frontend dependencies and build frontend
+description: Install frontend dependencies, run lint and tests, and build frontend
 
 outputs:
   frontend_install_duration_sec:
     description: Frontend install duration in seconds
     value: ${{ steps.frontend_install_end.outputs.duration }}
+
+  frontend_lint_duration_sec:
+    description: Frontend lint duration in seconds
+    value: ${{ steps.frontend_lint_end.outputs.duration }}
+
+  frontend_test_duration_sec:
+    description: Frontend test duration in seconds
+    value: ${{ steps.frontend_test_end.outputs.duration }}
+
   frontend_build_duration_sec:
     description: Frontend build duration in seconds
     value: ${{ steps.frontend_build_end.outputs.duration }}
 
 runs:
   using: composite
+
   steps:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: "20"
+        node-version: "22"
         cache: npm
         cache-dependency-path: frontend/package-lock.json
 
@@ -26,7 +36,8 @@ runs:
 
     - name: Install frontend dependencies
       shell: bash
-      run: cd frontend && npm ci
+      working-directory: frontend
+      run: npm ci
 
     - name: Stop frontend install timer
       id: frontend_install_end
@@ -36,6 +47,42 @@ runs:
         start=${{ steps.frontend_install_start.outputs.ts }}
         echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
 
+    - name: Start frontend lint timer
+      id: frontend_lint_start
+      shell: bash
+      run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+    - name: Run frontend lint
+      shell: bash
+      working-directory: frontend
+      run: npm run lint
+
+    - name: Stop frontend lint timer
+      id: frontend_lint_end
+      shell: bash
+      run: |
+        end=$(date +%s)
+        start=${{ steps.frontend_lint_start.outputs.ts }}
+        echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
+    - name: Start frontend test timer
+      id: frontend_test_start
+      shell: bash
+      run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+    - name: Run frontend tests
+      shell: bash
+      working-directory: frontend
+      run: npm test
+
+    - name: Stop frontend test timer
+      id: frontend_test_end
+      shell: bash
+      run: |
+        end=$(date +%s)
+        start=${{ steps.frontend_test_start.outputs.ts }}
+        echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+
     - name: Start frontend build timer
       id: frontend_build_start
       shell: bash
@@ -43,7 +90,8 @@ runs:
 
     - name: Build frontend
       shell: bash
-      run: cd frontend && npm run build
+      working-directory: frontend
+      run: npm run build
 
     - name: Stop frontend build timer
       id: frontend_build_end
