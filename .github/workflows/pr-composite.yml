@@ -1,0 +1,97 @@
+name: Composite PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: diplomski_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d diplomski_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+
+    outputs:
+      backend_install_duration_sec: ${{ steps.backend.outputs.backend_install_duration_sec }}
+      backend_test_duration_sec: ${{ steps.backend.outputs.backend_test_duration_sec }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run backend composite action
+        id: backend
+        uses: ./.github/actions/backend-ci
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+
+    outputs:
+      frontend_install_duration_sec: ${{ steps.frontend.outputs.frontend_install_duration_sec }}
+      frontend_lint_duration_sec: ${{ steps.frontend.outputs.frontend_lint_duration_sec }}
+      frontend_test_duration_sec: ${{ steps.frontend.outputs.frontend_test_duration_sec }}
+      frontend_build_duration_sec: ${{ steps.frontend.outputs.frontend_build_duration_sec }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run frontend composite action
+        id: frontend
+        uses: ./.github/actions/frontend-ci
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: composite-frontend-build-${{ github.run_id }}
+          path: frontend/dist
+          retention-days: 1
+
+  collect-metrics:
+    runs-on: ubuntu-latest
+    needs:
+      - backend-ci
+      - frontend-ci
+
+    steps:
+      - name: Create metrics file
+        run: |
+          mkdir -p metrics
+
+          cat <<EOF > metrics/composite-metrics.json
+          {
+            "variant": "composite",
+            "run_id": "${{ github.run_id }}",
+            "run_attempt": "${{ github.run_attempt }}",
+            "ref": "${{ github.ref_name }}",
+            "sha": "${{ github.sha }}",
+            "backend_install_duration_sec": "${{ needs.backend-ci.outputs.backend_install_duration_sec }}",
+            "backend_test_duration_sec": "${{ needs.backend-ci.outputs.backend_test_duration_sec }}",
+            "frontend_install_duration_sec": "${{ needs.frontend-ci.outputs.frontend_install_duration_sec }}",
+            "frontend_lint_duration_sec": "${{ needs.frontend-ci.outputs.frontend_lint_duration_sec }}",
+            "frontend_test_duration_sec": "${{ needs.frontend-ci.outputs.frontend_test_duration_sec }}",
+            "frontend_build_duration_sec": "${{ needs.frontend-ci.outputs.frontend_build_duration_sec }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: composite-metrics-${{ github.run_id }}
+          path: metrics/composite-metrics.json
+          retention-days: 30

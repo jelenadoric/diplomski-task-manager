@@ -1,0 +1,11 @@
+name: Reusable PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  call-reusable-pipeline:
+    uses: ./.github/workflows/reusable-pipeline.yml

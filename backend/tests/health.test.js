@@ -2,10 +2,10 @@ const request = require("supertest");
 
 const app = require("../app");
 
-describe("GET /health", () => {
+describe("GET api/health", () => {
     it("returns 200 when the database is available", async () => {
         const response = await request(app)
-            .get("/health");
+            .get("api/health");
 
         expect(response.status).toBe(200);
 

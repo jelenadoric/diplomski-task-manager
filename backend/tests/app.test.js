@@ -12,10 +12,10 @@ describe("Task API", () => {
     jest.clearAllMocks();
   });
 
-  test("GET /health should return ok", async () => {
+  test("GET api/health should return ok", async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
 
-    const response = await request(app).get("/health");
+    const response = await request(app).get("api/health");
 
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ status: "ok" });

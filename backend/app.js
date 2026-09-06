@@ -16,7 +16,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/health", async (req, res) => {
+app.get("api/health", async (req, res) => {
     try {
         await pool.query("SELECT 1");
 
