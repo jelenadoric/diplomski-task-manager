@@ -1,0 +1,41 @@
+experiment_id: main-6p-ci
+phase: confirmatory
+purpose: confirmatory_ci_runtime_comparison
+
+ref: experiment-v2
+frozen_sha: a693c3be73089c158f0cb556b9358606c895662a
+
+schedule: experiments/schedules/main-6p-ci.csv
+results_dir: experiments/results/main-6p-ci
+
+rounds: 30
+warmup_runs_per_variant: 1
+order_design: all_6_permutations_repeated_5_times
+
+variants:
+  baseline:
+    workflow: ci-baseline.yml
+  composite:
+    workflow: ci-composite.yml
+  reusable:
+    workflow: ci-reusable.yml
+
+primary_metric: workload_duration_sec
+
+confirmatory_analysis:
+  primary_comparisons:
+    - B-C
+    - B-R
+  primary_tests:
+    - paired_permutation_test
+    - bootstrap_95_percent_ci
+    - cohens_dz
+  multiplicity_correction: holm
+  omnibus_test: friedman
+  secondary_comparison: C-R
+  secondary_in_holm_correction: false
+
+analysis:
+  descriptive: experiments/analysis/analyze-results.py
+  confirmatory: experiments/analysis/analyze-confirmatory.py
+  plots: experiments/analysis/generate-plots.py

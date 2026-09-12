@@ -1,0 +1,4 @@
+metric,comparison,first_variant,second_variant,difference_definition,n_pairs,mean_difference_sec,median_difference_sec,bootstrap_ci_low_sec,bootstrap_ci_high_sec,permutation_p_value,cohens_dz,faster,equal,slower,sign_test_p_value
+workload_duration_sec,composite-baseline,composite,baseline,first_minus_second,30,-1.400000,-3.000000,-6.400000,4.366667,0.64567354,-0.091961,23,0,7,0.00522288
+workload_duration_sec,reusable-baseline,reusable,baseline,first_minus_second,30,-4.400000,-5.000000,-10.200000,1.466667,0.16423836,-0.264862,23,0,7,0.00522288
+workload_duration_sec,reusable-composite,reusable,composite,first_minus_second,30,-3.000000,0.000000,-10.900000,4.133333,0.45918541,-0.140181,14,3,13,1.00000000

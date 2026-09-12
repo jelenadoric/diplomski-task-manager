@@ -18,11 +18,11 @@ VARIANTS = {
     "reusable": "ci-reusable.yml",
 }
 
-ROTATIONS = [
-    ["baseline", "composite", "reusable"],
-    ["composite", "reusable", "baseline"],
-    ["reusable", "baseline", "composite"],
-]
+VARIANT_CODES = {
+    "baseline": "B",
+    "composite": "C",
+    "reusable": "R",
+}
 
 CSV_FIELDS = [
     "is_warmup",
@@ -58,6 +58,121 @@ CSV_FIELDS = [
     "metrics_conclusion",
     "failed_step",
 ]
+
+
+
+def load_schedule(schedule_path):
+    required_fields = {
+        "round",
+        "permutation",
+        "position_1",
+        "position_2",
+        "position_3",
+    }
+
+    if not schedule_path.exists():
+        raise FileNotFoundError(
+            f"Schedule file not found: {schedule_path}"
+        )
+
+    with schedule_path.open(
+        newline="",
+        encoding="utf-8",
+    ) as file:
+        reader = csv.DictReader(file)
+
+        if not reader.fieldnames:
+            raise ValueError(
+                "Schedule file has no header."
+            )
+
+        missing_fields = (
+            required_fields
+            - set(reader.fieldnames)
+        )
+
+        if missing_fields:
+            raise ValueError(
+                "Schedule is missing fields: "
+                + ", ".join(
+                    sorted(missing_fields)
+                )
+            )
+
+        schedule = []
+
+        for row in reader:
+            round_number = int(
+                row["round"]
+            )
+
+            order = [
+                row["position_1"].strip(),
+                row["position_2"].strip(),
+                row["position_3"].strip(),
+            ]
+
+            if (
+                len(set(order)) != 3
+                or set(order)
+                != set(VARIANTS)
+            ):
+                raise ValueError(
+                    "Invalid variant order "
+                    f"in round {round_number}: "
+                    f"{order}"
+                )
+
+            permutation = (
+                row["permutation"]
+                .strip()
+                .upper()
+            )
+
+            expected_permutation = "".join(
+                VARIANT_CODES[variant]
+                for variant in order
+            )
+
+            if permutation != expected_permutation:
+                raise ValueError(
+                    "Permutation label does not "
+                    "match variant order in round "
+                    f"{round_number}: expected "
+                    f"{expected_permutation}, got "
+                    f"{permutation}."
+                )
+
+            schedule.append({
+                "round": round_number,
+                "permutation": permutation,
+                "order": order,
+            })
+
+    if not schedule:
+        raise ValueError(
+            "Schedule is empty."
+        )
+
+    round_numbers = [
+        item["round"]
+        for item in schedule
+    ]
+
+    expected_rounds = list(
+        range(
+            1,
+            len(schedule) + 1,
+        )
+    )
+
+    if round_numbers != expected_rounds:
+        raise ValueError(
+            "Schedule rounds must be "
+            "sequential starting at 1."
+        )
+
+    return schedule
 
 
 def run_command(args, check=True):
@@ -294,6 +409,7 @@ def download_metrics_artifact(
     repository,
     run_id,
     variant,
+    metrics_dir,
 ):
     expected_name = (
         f"{variant}-metrics-{run_id}"
@@ -365,11 +481,26 @@ def download_metrics_artifact(
                 f"{len(json_files)}."
             )
 
-        return json.loads(
+        metrics = json.loads(
             json_files[0].read_text(
                 encoding="utf-8"
             )
         )
+
+        metrics_path = (
+            metrics_dir
+            / f"{variant}-run-{run_id}.json"
+        )
+
+        metrics_path.write_text(
+            json.dumps(
+                metrics,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        return metrics
 
 def wait_for_completion(
     repository,
@@ -835,6 +966,7 @@ def collect_active_run(
     results_dir,
     csv_path,
     raw_dir,
+    metrics_dir,
     state_path,
     poll_seconds,
 ):
@@ -855,6 +987,7 @@ def collect_active_run(
         repository,
         run_id,
         state["variant"],
+        metrics_dir,
     )
     if (
         run["conclusion"] == "success"
@@ -927,6 +1060,7 @@ def execute_run(
     results_dir,
     csv_path,
     raw_dir,
+    metrics_dir,
     state_path,
     poll_seconds,
 ):
@@ -971,6 +1105,7 @@ def execute_run(
         results_dir,
         csv_path,
         raw_dir,
+        metrics_dir,
         state_path,
         poll_seconds,
     )
@@ -980,9 +1115,11 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--rounds",
-        type=int,
-        default=1,
+        "--schedule",
+        default=(
+            "experiments/schedules/"
+            "main-6p-ci.csv"
+        ),
     )
 
     parser.add_argument(
@@ -993,7 +1130,8 @@ def main():
     parser.add_argument(
         "--results-dir",
         default=(
-            "experiments/results"
+            "experiments/results/"
+            "main-6p-ci"
         ),
     )
 
@@ -1010,10 +1148,13 @@ def main():
 
     args = parser.parse_args()
 
-    if args.rounds < 1:
-        raise ValueError(
-            "rounds must be at least 1"
-        )
+    schedule_path = Path(
+        args.schedule
+    )
+
+    schedule = load_schedule(
+        schedule_path
+    )
 
     results_dir = Path(
         args.results_dir
@@ -1021,6 +1162,10 @@ def main():
 
     raw_dir = (
         results_dir / "raw"
+    )
+
+    metrics_dir = (
+        results_dir / "metrics"
     )
 
     results_dir.mkdir(
@@ -1033,6 +1178,11 @@ def main():
         exist_ok=True,
     )
 
+    metrics_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     csv_path = (
         results_dir / "runs.csv"
     )
@@ -1040,6 +1190,16 @@ def main():
     state_path = (
         results_dir / "active_run.json"
     )
+
+    print(
+        f"Schedule: {schedule_path}"
+    )
+
+    print(
+        f"Measured rounds: {len(schedule)}"
+    )
+
+    print()
 
     print("Checking GitHub authentication...")
 
@@ -1098,6 +1258,7 @@ def main():
             results_dir,
             csv_path,
             raw_dir,
+            metrics_dir,
             state_path,
             args.poll_seconds,
         )
@@ -1142,22 +1303,29 @@ def main():
                 results_dir=results_dir,
                 csv_path=csv_path,
                 raw_dir=raw_dir,
+                metrics_dir=metrics_dir,
                 state_path=state_path,
                 poll_seconds=args.poll_seconds,
             )
 
             completed.add(key)
 
-    for round_number in range(
-        1,
-        args.rounds + 1,
-    ):
-        order = ROTATIONS[
-            (round_number - 1) % 3
-        ]
+    for schedule_entry in schedule:
+        round_number = (
+            schedule_entry["round"]
+        )
+
+        permutation = (
+            schedule_entry["permutation"]
+        )
+
+        order = (
+            schedule_entry["order"]
+        )
 
         print(
-            f"=== ROUND {round_number} ==="
+            f"=== ROUND {round_number} "
+            f"({permutation}) ==="
         )
 
         print(
@@ -1196,6 +1364,7 @@ def main():
                 results_dir=results_dir,
                 csv_path=csv_path,
                 raw_dir=raw_dir,
+                metrics_dir=metrics_dir,
                 state_path=state_path,
                 poll_seconds=args.poll_seconds,
             )
@@ -1221,6 +1390,10 @@ def main():
 
     print(
         f"Raw data: {raw_dir}"
+    )
+
+    print(
+        f"Metrics data: {metrics_dir}"
     )
 
 

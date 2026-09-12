@@ -1,0 +1,28 @@
+experiment_id: pilot-3p
+phase: pilot
+purpose: exploratory
+
+ref: experiment-v2
+frozen_sha: a693c3be73089c158f0cb556b9358606c895662a
+
+schedule: experiments/schedules/pilot-3p-observed.csv
+results_dir: experiments/results/pilot-3p
+
+rounds: 30
+warmup_runs_per_variant: 1
+order_design: observed_3_permutation_rotation
+
+variants:
+  baseline:
+    workflow: ci-baseline.yml
+  composite:
+    workflow: ci-composite.yml
+  reusable:
+    workflow: ci-reusable.yml
+
+primary_metric: workload_duration_sec
+
+analysis:
+  descriptive: experiments/analysis/analyze-results.py
+  paired: experiments/analysis/analyze-pilot.py
+  plots: experiments/analysis/generate-plots.py
