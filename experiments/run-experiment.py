@@ -1124,7 +1124,7 @@ def main():
 
     parser.add_argument(
         "--ref",
-        default="experiment-v2",
+        default="main-6p-ci-v1",
     )
 
     parser.add_argument(

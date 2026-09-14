@@ -1,0 +1,14 @@
+{
+  "variant": "baseline",
+  "run_id": "34714639196",
+  "run_attempt": "1",
+  "ref": "main-6p-ci-v1",
+  "sha": "185a06c38179a8efaeece6a3409bdb11192c1819",
+  "backend_install_duration_sec": "2",
+  "backend_test_duration_sec": "27",
+  "frontend_install_duration_sec": "4",
+  "frontend_lint_duration_sec": "3",
+  "frontend_test_duration_sec": "11",
+  "frontend_build_duration_sec": "1",
+  "timestamp": "2026-09-12T19:37:20Z"
+}

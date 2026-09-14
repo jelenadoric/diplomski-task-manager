@@ -1,0 +1,2 @@
+metric,comparison,first_variant,second_variant,difference_definition,n_pairs,mean_difference_sec,median_difference_sec,bootstrap_ci_low_sec,bootstrap_ci_high_sec,permutation_p_value,cohens_dz
+workload_duration_sec,C-R,composite,reusable,first_minus_second,30,1.800000,0.000000,-1.866667,5.533333,0.36834632,0.170431

@@ -2,8 +2,8 @@ experiment_id: main-6p-ci
 phase: confirmatory
 purpose: confirmatory_ci_runtime_comparison
 
-ref: experiment-v2
-frozen_sha: a693c3be73089c158f0cb556b9358606c895662a
+ref: main-6p-ci-v1
+frozen_sha: 185a06c38179a8efaeece6a3409bdb11192c1819
 
 schedule: experiments/schedules/main-6p-ci.csv
 results_dir: experiments/results/main-6p-ci

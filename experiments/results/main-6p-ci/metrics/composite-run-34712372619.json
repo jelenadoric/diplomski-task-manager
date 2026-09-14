@@ -1,0 +1,14 @@
+{
+  "variant": "composite",
+  "run_id": "34712372619",
+  "run_attempt": "1",
+  "ref": "main-6p-ci-v1",
+  "sha": "185a06c38179a8efaeece6a3409bdb11192c1819",
+  "backend_install_duration_sec": "1",
+  "backend_test_duration_sec": "17",
+  "frontend_install_duration_sec": "2",
+  "frontend_lint_duration_sec": "2",
+  "frontend_test_duration_sec": "9",
+  "frontend_build_duration_sec": "0",
+  "timestamp": "2026-09-12T18:50:54Z"
+}
