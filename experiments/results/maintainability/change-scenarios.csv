@@ -1,0 +1,7 @@
+scenario,variant,change,modified_files,change_locations,added_lines,deleted_lines,diff_loc,verification
+M1,baseline,Node.js 20 to 22,1,2,2,2,4,PASS
+M1,composite,Node.js 20 to 22,2,2,2,2,4,PASS
+M1,reusable,Node.js 20 to 22,1,2,2,2,4,PASS
+M2,baseline,PostgreSQL 16 to 17,1,1,1,1,2,PASS
+M2,composite,PostgreSQL 16 to 17,1,1,1,1,2,PASS
+M2,reusable,PostgreSQL 16 to 17,1,1,1,1,2,PASS

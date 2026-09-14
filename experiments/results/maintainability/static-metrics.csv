@@ -1,0 +1,4 @@
+variant,files,yaml_loc,duplicate_loc,duplicated_patterns,duplication_ratio_pct
+baseline,1,160,43,19,26.88
+composite,3,215,67,22,31.16
+reusable,2,166,45,21,27.11

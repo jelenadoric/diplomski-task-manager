@@ -1,0 +1,4 @@
+﻿variant,yaml_loc,duplicate_loc,duplication_ratio_pct,M1_modified_files,M1_change_locations,M1_diff_loc,M1_verification,M2_modified_files,M2_change_locations,M2_diff_loc,M2_verification
+baseline,160,43,26.88,1,2,4,PASS,1,1,2,PASS
+composite,215,67,31.16,2,2,4,PASS,1,1,2,PASS
+reusable,166,45,27.11,1,2,4,PASS,1,1,2,PASS
